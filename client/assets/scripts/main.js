@@ -22,47 +22,85 @@ const send = (event, data = null) => {
 
 ws.addEventListener('message', message => {
     const {data, event} = JSON.parse(message.data);
-
     switch (event) {
         case "send-rooms":
             if (data.goto_rooms) {
                 CONTAINER.innerHTML = HTML_ROOMS;
-                document.getElementById('room-private').addEventListener('change', () => {
-                    document.querySelector('#create-room-form label[for="room-password"]').classList.toggle('active');
-                });
-                document.getElementById('room-limit').addEventListener('input', (e) => {
-                    document.getElementById('range-limit-value').innerText = e.target.value;
-                });
-                document.getElementById('create-room-form').addEventListener('submit', (e) => {
-                    e.preventDefault();
-                    send('create-room', {
-                        name: document.getElementById('room-name').value,
-                        limit: document.getElementById('room-limit').value,
-                        private: document.getElementById('room-private').checked,
-                        password: document.getElementById('room-password').value,
+                setTimeout(() => {
+                    document.getElementById('room-private').addEventListener('change', () => {
+                        document.querySelector('#create-room-form label[for="room-password"]').classList.toggle('active');
                     });
-                });
+                    document.getElementById('room-limit').addEventListener('input', (e) => {
+                        document.getElementById('range-limit-value').innerText = e.target.value;
+                    });
+                    document.getElementById('create-room-form').addEventListener('submit', (e) => {
+                        e.preventDefault();
+                        send('create-room', {
+                            name: document.getElementById('room-name').value,
+                            limit: document.getElementById('room-limit').value,
+                            private: document.getElementById('room-private').checked,
+                            password: document.getElementById('room-password').value,
+                        });
+                    });
+                }, 50);
             }
-            const ROOM_CONTAINER = document.getElementById('rooms-container');
-            ROOM_CONTAINER.innerHTML = "";
-            for (const i in data.ROOMS) {
-                const room = data.ROOMS[i];
-                ROOM_CONTAINER.innerHTML += `<div class="room">
+            setTimeout(() => {
+                const ROOM_CONTAINER = document.getElementById('rooms-container');
+                ROOM_CONTAINER.innerHTML = "";
+
+                for (const i in data.ROOMS) {
+                    const room = data.ROOMS[i];
+                    ROOM_CONTAINER.innerHTML += `<div class="room">
                         <div>${room.name} 
                             <span class="author">Créateur : ${room.author.name}</span>
                             </div><div class="limit">${room.players.length}/${room.limit} ${room.private ? '🔐' : '🔓'}
                         </div>
-                        <button id="${room.room_id}" class="join-btn">Join</button>
+                        <button id="${room.room_id}" class="join-btn">Rejoindre</button>
                     </div>`;
-            }
-            [...document.getElementsByClassName('join-btn')].forEach(btn => btn.addEventListener('click', joinRoom));
+                }
+                [...document.getElementsByClassName('join-btn')].forEach(btn => btn.addEventListener('click', joinRoom));
+            }, 50);
             break;
 
         case "join-room":
             CONTAINER.innerHTML = `<button id="leave-btn">QUITTER</button><div id="select-color-form">SELECT YOUR COLOR</div>`;
             document.getElementById('leave-btn').addEventListener('click', () => {
                 send('leave-room');
-            })
+            });
+            break;
+
+        case "alert":
+            CONTAINER.innerHTML += '<div id="alert"><button id="close-alert">X</button>' +
+                '<h5>' + data + '</h5>' +
+                '</div>';
+            document.getElementById('close-alert').addEventListener('click', (e) => {
+                if (e.target.parentElement.id === 'alert') {
+                    e.target.parentElement.remove();
+                    send('request-rooms');
+                }
+            });
+            break;
+        case "request-room-password":
+            CONTAINER.innerHTML += '<div id="alert"><button id="close-alert">X</button>' +
+                '<form id="room-password-form">' +
+                '<input type="password" placeholder="Mot de passe">' +
+                '<input type="submit" value="Envoyer">' +
+                '</form>' +
+                '</div>';
+            document.getElementById('close-alert').addEventListener('click', (e) => {
+                if (e.target.parentElement.id === 'alert') {
+                    e.target.parentElement.remove();
+                    send('request-rooms');
+                }
+            });
+            document.getElementById('room-password-form').addEventListener('submit', (e) => {
+                e.preventDefault();
+                send('room-password', {
+                    password: document.querySelector('#room-password-form input[type="password"]').value,
+                    room: data
+                });
+                document.getElementById('alert').remove();
+            });
             break;
     }
 });
@@ -72,4 +110,4 @@ document.getElementById('set-username-form').addEventListener('submit', (e) => {
     e.preventDefault();
     username = document.querySelector('#set-username-form #username').value;
     send('set-username', username);
-})
+});

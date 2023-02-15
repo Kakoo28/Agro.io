@@ -20,19 +20,22 @@ const ROOMS_PASSWORD = {};
 
 function updateRooms(ws) {
     if (ws) {
-        for (const i in ROOMS) {
-            if (ROOMS[i].author.id === ws.id) {
-                let remainingUsers = ROOMS[i].players.filter(id => id !== ws.id);
-                console.log('# La room', ROOMS[i].name, 'a était supprimée, R: deconnection de l\'hôte.');
-                delete ROOMS[i];
+        if (ws.currentRoom) {
+            if (ROOMS[ws.currentRoom].author.id === ws.id) {
+                let remainingUsers = ROOMS[ws.currentRoom].players.filter(id => id !== ws.id);
+                console.log('# La room', ROOMS[ws.currentRoom].name, 'a était supprimée, R: deconnection de l\'hôte.');
+                delete ROOMS[ws.currentRoom];
                 remainingUsers.forEach(user => {
                     USERS[user].waiting = true;
                     USERS[user].currentRoom = null;
                     send(USERS[user], 'send-rooms', {goto_rooms: true, ROOMS});
                 });
+            } else {
+                ROOMS[ws.currentRoom].players.splice(ROOMS[ws.currentRoom].players.indexOf(ws.id), 1);
             }
         }
     }
+
     for (const i in USERS) {
         if (USERS[i].waiting) {
             send(USERS[i], 'send-rooms', {goto_rooms: false, ROOMS});
@@ -40,8 +43,13 @@ function updateRooms(ws) {
     }
 }
 
-function joinRoom(ws, id) {
-
+function joinRoom(ws, data) {
+    ROOMS[data].players.push(ws.id);
+    ws.currentRoom = ROOMS[data].room_id;
+    ws.waiting = false;
+    send(ws, 'join-room', ROOMS[data]);
+    console.log(`# ${ws.username} a rejoint une room (${ROOMS[data].name})`);
+    updateRooms();
 }
 
 function send(ws, event, data = null) {
@@ -85,20 +93,25 @@ wss.on("connection", ws => {
                         console.log(`# ${ws.username} (${ws.id}) à crée une nouvelle room (${ROOMS[newRoomID].name})`);
                     }
                     break;
+
                 case "join-room":
                     if (ROOMS[data].players.length < ROOMS[data].limit) {
                         if (ROOMS[data].private) {
-                            // PASSWORD PART (REQUEST PASSWORD)
+                            send(ws, 'request-room-password', data);
                             break;
+
                         }
-                        ROOMS[data].players.push(ws.id);
-                        ws.currentRoom = ROOMS[data].room_id;
-                        ws.waiting = false;
-                        send(ws, 'join-room', ROOMS[data]);
-                        console.log(`# ${ws.username} a rejoint une room (${ROOMS[data].name})`);
-                        updateRooms();
+                        joinRoom(ws, data);
                     } else {
-                        send(ws, 'room-is-full'); // ADD (NTL)
+                        send(ws, 'alert', "La partie est pleine.");
+                    }
+                    break;
+
+                case "room-password":
+                    if (ROOMS_PASSWORD[data.room] === data.password) {
+                        joinRoom(ws, data.room);
+                    } else {
+                        send(ws, "alert", "Mot de passe incorrect!");
                     }
                     break;
 
@@ -111,14 +124,19 @@ wss.on("connection", ws => {
                     ws.currentRoom = null;
                     send(ws, 'send-rooms', {goto_rooms: true, ROOMS});
                     updateRooms();
+                    break;
+
+                case "request-rooms":
+                    send(ws, 'send-rooms', {ROOMS, goto_rooms: false});
+                    break;
             }
         } catch (error) {
-            console.log('[ERROR] Something went wrong with the message => ', error.error);
+            console.log('[ERROR] Something went wrong with the message => ', error);
         }
     });
 
     ws.on("close", () => {
-        console.log(' —', ws.username ? ws.username : ws.id);
+        console.log(' -', ws.username ? ws.username : ws.id);
         delete USERS[ws.id];
         updateRooms(ws);
     });

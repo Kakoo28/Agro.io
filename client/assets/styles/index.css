@@ -1,6 +1,12 @@
 
-* {box-sizing: border-box}
-body {margin: 0; font-family: sans-serif;}
+* {
+    box-sizing: border-box
+}
+
+body {
+    margin: 0;
+    font-family: sans-serif;
+}
 
 #container {
     width: 100%;
@@ -23,6 +29,7 @@ body {margin: 0; font-family: sans-serif;}
     flex-direction: column;
     font-size: 4rem;
 }
+
 #set-username-form input[type="text"] {
     font-size: 4rem;
     border: none;
@@ -30,6 +37,7 @@ body {margin: 0; font-family: sans-serif;}
     border-bottom: 1px solid black;
     text-align: center;
 }
+
 #set-username-form input[type="submit"] {
     font-size: 3rem;
     cursor: pointer;
@@ -46,6 +54,7 @@ body {margin: 0; font-family: sans-serif;}
     scrollbar-width: none;
     border: 5px solid black;
 }
+
 #rooms-container::-webkit-scrollbar {
     display: none;
 }
@@ -61,6 +70,7 @@ body {margin: 0; font-family: sans-serif;}
     justify-content: start;
     padding: 20px;
 }
+
 #rooms-container .room button {
     position: absolute;
     width: 20%;
@@ -70,6 +80,7 @@ body {margin: 0; font-family: sans-serif;}
     right: 0;
     cursor: pointer;
 }
+
 #rooms-container .room .author {
     display: block;
 }
@@ -88,41 +99,107 @@ body {margin: 0; font-family: sans-serif;}
 }
 
 #create-room-form input[type="text"],
-#create-room-form input[type="password"]{
+#create-room-form input[type="password"] {
     outline: none;
     font-size: 1.2rem;
     width: 80%;
     margin: 0 auto;
 }
-#create-room-form input[type="submit"]{
+
+#create-room-form input[type="submit"] {
     border: none;
     cursor: pointer;
     padding: 10px;
     margin: 5px 0;
 }
-#create-room-form label[for="room-private"]{
+
+#create-room-form label[for="room-private"] {
     display: flex;
     align-items: center;
     cursor: pointer;
 }
+
 #create-room-form label[for="room-limit"] {
     font-size: 1.1rem;
     margin: 0 auto;
 }
+
 #create-room-form label[for="room-private"] input {
     cursor: pointer;
     height: 15px;
     width: 15px;
     margin: 0 0 0 10px;
 }
+
 #create-room-form label[for="room-password"] {
     display: none;
 }
+
 #create-room-form label[for="room-password"].active {
     display: inline-block;
+}
+
+/* ROOM */
+.room span {
+    font-size: 0.75rem;
+}
+.room .limit {
+    position: absolute;
+    right: 25%;
+}
+
+/* ALERTS */
+#alert {
+    position: absolute;
+    top: 50%;
+    left: 42.5%;
+    transform: translate(-50%, -50%);
+    min-width: 400px;
+    border: 4px solid black;
+    padding: 20px;
+    background-color: rgb(240, 240, 240);
+    width: 400px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    color: rgb(50, 50, 50);
+}
+
+#close-alert {
+    position: absolute;
+    top: 0;
+    left: 0;
+    cursor: pointer;
+    background-color: white;
+    color: red;
+    border: 1px solid red;
+}
+
+#alert form {
+    height: 65%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-around;
+}
+
+#alert form input {
+    font-size: 1.3rem;
+    border: none;
+    padding: 10px;
+    outline: none;
+    background-color: white;
+    margin: 5px -0px;
+}
+
+#alert form input[type="submit"] {
+    cursor: pointer;
 }
 
 /* SELECT A COLOR FORM */
 #select-color-form {
     font-size: 1rem;
 }
+
