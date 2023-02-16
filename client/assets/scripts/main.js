@@ -1,6 +1,9 @@
 const ws = new WebSocket('ws://localhost:3000');
 
-const HTML_ROOMS = '<div id="rooms-container"></div>' +
+const HTML_ROOMS = '<div><div id="rooms-container"></div>' +
+    '<div id="colors-container">' + // [red, blue, green, purple, yellow, orange, random]
+        '<div id="red" class="color"></div><div id="blue" class="color"></div><div id="green" class="color"></div><div id="purple" class="color"></div><div id="yellow" class="color"></div><div id="orange" class="color"></div><div id="random" class="color active">?</div>' +
+    '</div></div>' +
     '<form id="create-room-form">' +
     '<input id="room-name" type="text" placeholder="Nom de la partie">' +
     '<label for="room-limit"><input type="range" min="4" max="25" value="4" id="room-limit"><span id="range-limit-value">4</span> MAX</label>' +
@@ -11,6 +14,14 @@ const HTML_ROOMS = '<div id="rooms-container"></div>' +
 
 const CONTAINER = document.getElementById('container');
 let username;
+let currentColor = 'random';
+
+function closeAlert(e) {
+    if (e.target.parentElement.id === 'alert') {
+        e.target.parentElement.remove();
+        send('request-rooms', true);
+    }
+}
 
 function joinRoom(e) {
     send('join-room', e.target.id);
@@ -24,7 +35,7 @@ ws.addEventListener('message', message => {
     const {data, event} = JSON.parse(message.data);
     switch (event) {
         case "send-rooms":
-            if (data.goto_rooms) {
+            if (data.goto_rooms) { // GOTO ROOMS
                 CONTAINER.innerHTML = HTML_ROOMS;
                 setTimeout(() => {
                     document.getElementById('room-private').addEventListener('change', () => {
@@ -42,9 +53,27 @@ ws.addEventListener('message', message => {
                             password: document.getElementById('room-password').value,
                         });
                     });
+                    // COLORS
+                    const COLORS = [...document.getElementsByClassName('color')];
+                    if (currentColor) {
+                        COLORS.forEach(color => {
+                            color.classList.remove('active');
+                        });
+                        document.getElementById(currentColor).classList.add('active');
+                    } else currentColor = 'random';
+                    COLORS.forEach(color => color.addEventListener('click', (e) => {
+                        currentColor = e.target.id;
+                        COLORS.forEach(color => {
+                            color.classList.remove('active');
+                        });
+                        document.getElementById(currentColor).classList.add('active');
+                        send('change-color', currentColor);
+                    }));
                 }, 50);
             }
+
             setTimeout(() => {
+                // ADD ROOMS
                 const ROOM_CONTAINER = document.getElementById('rooms-container');
                 ROOM_CONTAINER.innerHTML = "";
 
@@ -53,7 +82,7 @@ ws.addEventListener('message', message => {
                     ROOM_CONTAINER.innerHTML += `<div class="room">
                         <div>${room.name} 
                             <span class="author">Créateur : ${room.author.name}</span>
-                            </div><div class="limit">${room.players.length}/${room.limit} ${room.private ? '🔐' : '🔓'}
+                            </div><div class="limit">${Object.keys(room.players).length}/${room.limit} ${room.private ? '🔐' : '🔓'}
                         </div>
                         <button id="${room.room_id}" class="join-btn">Rejoindre</button>
                     </div>`;
@@ -73,12 +102,7 @@ ws.addEventListener('message', message => {
             CONTAINER.innerHTML += '<div id="alert"><button id="close-alert">X</button>' +
                 '<h5>' + data + '</h5>' +
                 '</div>';
-            document.getElementById('close-alert').addEventListener('click', (e) => {
-                if (e.target.parentElement.id === 'alert') {
-                    e.target.parentElement.remove();
-                    send('request-rooms');
-                }
-            });
+            document.getElementById('close-alert').addEventListener('click', closeAlert);
             break;
         case "request-room-password":
             CONTAINER.innerHTML += '<div id="alert"><button id="close-alert">X</button>' +
@@ -87,12 +111,7 @@ ws.addEventListener('message', message => {
                 '<input type="submit" value="Envoyer">' +
                 '</form>' +
                 '</div>';
-            document.getElementById('close-alert').addEventListener('click', (e) => {
-                if (e.target.parentElement.id === 'alert') {
-                    e.target.parentElement.remove();
-                    send('request-rooms');
-                }
-            });
+            document.getElementById('close-alert').addEventListener('click', closeAlert);
             document.getElementById('room-password-form').addEventListener('submit', (e) => {
                 e.preventDefault();
                 send('room-password', {

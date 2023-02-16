@@ -22,33 +22,34 @@ function updateRooms(ws) {
     if (ws) {
         if (ws.currentRoom) {
             if (ROOMS[ws.currentRoom].author.id === ws.id) {
-                let remainingUsers = ROOMS[ws.currentRoom].players.filter(id => id !== ws.id);
-                console.log('# La room', ROOMS[ws.currentRoom].name, 'a était supprimée, R: deconnection de l\'hôte.');
+                for (const playerID in ROOMS[ws.currentRoom].players) {
+                    if (ws.id !== playerID) {
+                        USERS[playerID].isWaiting = true;
+                        USERS[playerID].currentRoom = null;
+                        send(USERS[playerID], 'send-rooms', {goto_rooms: true, ROOMS});
+                    }
+                }
+                console.log(`[${ROOMS[ws.currentRoom].name}] # ROOM SUPPRIMER | RAISON: l\'hôte à quitter.`);
                 delete ROOMS[ws.currentRoom];
-                remainingUsers.forEach(user => {
-                    USERS[user].waiting = true;
-                    USERS[user].currentRoom = null;
-                    send(USERS[user], 'send-rooms', {goto_rooms: true, ROOMS});
-                });
             } else {
-                ROOMS[ws.currentRoom].players.splice(ROOMS[ws.currentRoom].players.indexOf(ws.id), 1);
+                delete ROOMS[ws.currentRoom].players[ws.id];
             }
         }
     }
 
     for (const i in USERS) {
-        if (USERS[i].waiting) {
+        if (USERS[i].isWaiting) {
             send(USERS[i], 'send-rooms', {goto_rooms: false, ROOMS});
         }
     }
 }
 
 function joinRoom(ws, data) {
-    ROOMS[data].players.push(ws.id);
+    ROOMS[data].players[ws.id] = { id: ws.id, username: ws.username, color: ws.color };
     ws.currentRoom = ROOMS[data].room_id;
-    ws.waiting = false;
+    ws.isWaiting = false;
     send(ws, 'join-room', ROOMS[data]);
-    console.log(`# ${ws.username} a rejoint une room (${ROOMS[data].name})`);
+    console.log(`[${ROOMS[data].name}] + ${ws.username}`);
     updateRooms();
 }
 
@@ -57,6 +58,7 @@ function send(ws, event, data = null) {
 }
 
 wss.on("connection", ws => {
+    ws.color = 'random';
     ws.id = uuid();
     USERS[ws.id] = ws;
     console.log(' +', ws.id);
@@ -68,38 +70,42 @@ wss.on("connection", ws => {
                 case "set-username":
                     if (data !== '' && data !== undefined && data.length > 0 && data.length <= 20) {
                         ws.username = data;
-                        ws.waiting = true;
+                        ws.isWaiting = true;
                         send(ws, 'send-rooms', {goto_rooms: true, ROOMS});
                         console.log(`# ${ws.id} => ${ws.username}`);
                     }
                     break;
 
                 case "create-room":
-                    if (data.name !== '' && data.name !== undefined && data.name.length > 0 && ws.waiting) {
+                    if (data.name !== '' && data.name !== undefined && data.name.length > 0 && ws.isWaiting) {
                         let newRoomID = uuid();
                         ROOMS[newRoomID] = {
                             name: data.name,
                             room_id: newRoomID,
                             limit: data.limit,
                             author: {name: ws.username, id: ws.id},
-                            players: [ws.id,],
+                            players: {},
                             private: data.private
                         }
+                        ROOMS[newRoomID].players[ws.id] = {id: ws.id, username: ws.username, color: ws.color};
                         if (data.private) ROOMS_PASSWORD[newRoomID] = data.password;
-                        ws.waiting = false;
+                        ws.isWaiting = false;
                         ws.currentRoom = newRoomID;
                         updateRooms();
                         send(ws, 'join-room', ROOMS[ws.currentRoom]);
-                        console.log(`# ${ws.username} (${ws.id}) à crée une nouvelle room (${ROOMS[newRoomID].name})`);
+                        console.log(`# ${ws.username} a crée une nouvelle room [${ROOMS[newRoomID].name}]`);
                     }
                     break;
 
+                case "change-color":
+                    ws.color = data;
+                    break;
+
                 case "join-room":
-                    if (ROOMS[data].players.length < ROOMS[data].limit) {
+                    if (Object.keys(ROOMS[data].players).length < ROOMS[data].limit) {
                         if (ROOMS[data].private) {
                             send(ws, 'request-room-password', data);
                             break;
-
                         }
                         joinRoom(ws, data);
                     } else {
@@ -116,9 +122,9 @@ wss.on("connection", ws => {
                     break;
 
                 case "leave-room":
-                    ROOMS[ws.currentRoom].players.splice(ROOMS[ws.currentRoom].players.indexOf(ws.id), 1);
-                    console.log(`# ${ws.username} a quitter la room ${ROOMS[ws.currentRoom].name}`);
-                    ws.waiting = true;
+                    delete ROOMS[ws.currentRoom].players[ws.id];
+                    console.log(`[${ROOMS[ws.currentRoom].name}] - ${ws.username}`);
+                    ws.isWaiting = true;
 
                     if (ROOMS[ws.currentRoom].author.id === ws.id) updateRooms(ws);
                     ws.currentRoom = null;
@@ -127,7 +133,7 @@ wss.on("connection", ws => {
                     break;
 
                 case "request-rooms":
-                    send(ws, 'send-rooms', {ROOMS, goto_rooms: false});
+                    send(ws, 'send-rooms', {ROOMS, goto_rooms: data});
                     break;
             }
         } catch (error) {
@@ -139,6 +145,7 @@ wss.on("connection", ws => {
         console.log(' -', ws.username ? ws.username : ws.id);
         delete USERS[ws.id];
         updateRooms(ws);
+
     });
 });
 
