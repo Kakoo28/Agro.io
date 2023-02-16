@@ -7,8 +7,7 @@
 - [x] Nommer joueur
 - [x] Création de room
 - [X] Selection de couleur
-- [ ] Initialisation de la map
 - [ ] Mouvement des joueurs
 - [ ] Combat des joueurs
-- [ ] Apparition et récupération des points récupérables
+- [ ] Apparition et récupération des points de masse
 - [ ] Tableau des scores
