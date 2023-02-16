@@ -6,7 +6,7 @@
 
 - [x] Nommer joueur
 - [x] Création de room
-- [ ] Selection de couleur
+- [X] Selection de couleur
 - [ ] Initialisation de la map
 - [ ] Mouvement des joueurs
 - [ ] Combat des joueurs
