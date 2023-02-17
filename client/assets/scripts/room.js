@@ -2,7 +2,7 @@ const ws = new WebSocket('ws://localhost:3000');
 
 const HTML_ROOMS = '<div><div id="rooms-container"></div>' +
     '<div id="colors-container">' + // [red, blue, green, purple, yellow, orange, random]
-        '<div id="red" class="color"></div><div id="blue" class="color"></div><div id="green" class="color"></div><div id="purple" class="color"></div><div id="yellow" class="color"></div><div id="orange" class="color"></div><div id="random" class="color active">?</div>' +
+    '<div id="red" class="color"></div><div id="blue" class="color"></div><div id="green" class="color"></div><div id="purple" class="color"></div><div id="yellow" class="color"></div><div id="orange" class="color"></div><div id="random" class="color active">?</div>' +
     '</div></div>' +
     '<form id="create-room-form">' +
     '<input id="room-name" type="text" placeholder="Nom de la partie">' +
@@ -73,7 +73,6 @@ ws.addEventListener('message', message => {
             }
 
             setTimeout(() => {
-                // ADD ROOMS
                 const ROOM_CONTAINER = document.getElementById('rooms-container');
                 ROOM_CONTAINER.innerHTML = "";
 
@@ -82,8 +81,7 @@ ws.addEventListener('message', message => {
                     ROOM_CONTAINER.innerHTML += `<div class="room">
                         <div>${room.name} 
                             <span class="author">Créateur : ${room.author.name}</span>
-                            </div><div class="limit">${Object.keys(room.players).length}/${room.limit} ${room.private ? '🔐' : '🔓'}
-                        </div>
+                            </div><div class="limit">${Object.keys(room.players).length}/${room.limit} ${room.private ? '🔐' : '🔓'}</div>
                         <button id="${room.room_id}" class="join-btn">Rejoindre</button>
                     </div>`;
                 }
@@ -92,7 +90,7 @@ ws.addEventListener('message', message => {
             break;
 
         case "join-room":
-            CONTAINER.innerHTML = `<button id="leave-btn">QUITTER</button><div id="select-color-form">SELECT YOUR COLOR</div>`;
+            CONTAINER.innerHTML = '<button id="leave-btn">QUITTER</button><canvas id="canvas"></canvas>';
             document.getElementById('leave-btn').addEventListener('click', () => {
                 send('leave-room');
             });

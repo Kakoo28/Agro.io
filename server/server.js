@@ -17,6 +17,7 @@ app.use('/static', express.static('../client/assets/'));
 const USERS = {};
 const ROOMS = {};
 const ROOMS_PASSWORD = {};
+const GAME_INTERVALS = {};
 
 function updateRooms(ws) {
     if (ws) {
@@ -30,6 +31,7 @@ function updateRooms(ws) {
                     }
                 }
                 console.log(`[${ROOMS[ws.currentRoom].name}] # ROOM SUPPRIMER | RAISON: l\'hôte à quitter.`);
+                clearInterval(GAME_INTERVALS[ws.currentRoom]);
                 delete ROOMS[ws.currentRoom];
             } else {
                 delete ROOMS[ws.currentRoom].players[ws.id];
@@ -45,16 +47,25 @@ function updateRooms(ws) {
 }
 
 function joinRoom(ws, data) {
-    ROOMS[data].players[ws.id] = { id: ws.id, username: ws.username, color: ws.color };
+    if (ws.id !== ROOMS[data].author.id) {
+        ROOMS[data].players[ws.id] = { id: ws.id, username: ws.username, color: ws.color };
+    }
     ws.currentRoom = ROOMS[data].room_id;
     ws.isWaiting = false;
-    send(ws, 'join-room', ROOMS[data]);
+    send(ws, 'join-room', {room: ROOMS[data], uid: ws.id});
     console.log(`[${ROOMS[data].name}] + ${ws.username}`);
     updateRooms();
 }
 
 function send(ws, event, data = null) {
     ws.send(JSON.stringify({event: event, data: data}));
+}
+
+function intervalUpdate(room_id) {
+    for (const id in ROOMS[room_id].players) {
+        send(USERS[id], 'request-status');
+        send(USERS[id], 'receive-state', ROOMS[room_id].players);
+    }
 }
 
 wss.on("connection", ws => {
@@ -87,13 +98,13 @@ wss.on("connection", ws => {
                             players: {},
                             private: data.private
                         }
+
                         ROOMS[newRoomID].players[ws.id] = {id: ws.id, username: ws.username, color: ws.color};
                         if (data.private) ROOMS_PASSWORD[newRoomID] = data.password;
-                        ws.isWaiting = false;
-                        ws.currentRoom = newRoomID;
-                        updateRooms();
-                        send(ws, 'join-room', ROOMS[ws.currentRoom]);
+                        joinRoom(ws, newRoomID);
                         console.log(`# ${ws.username} a crée une nouvelle room [${ROOMS[newRoomID].name}]`);
+                        GAME_INTERVALS[newRoomID] = setInterval(() => intervalUpdate(ws.currentRoom), 200);
+                        updateRooms();
                     }
                     break;
 
@@ -135,6 +146,10 @@ wss.on("connection", ws => {
                 case "request-rooms":
                     send(ws, 'send-rooms', {ROOMS, goto_rooms: data});
                     break;
+
+                case "send-status":
+                    ROOMS[ws.currentRoom].players[ws.id] = data;
+                    break;
             }
         } catch (error) {
             console.log('[ERROR] Something went wrong with the message => ', error);
@@ -145,7 +160,6 @@ wss.on("connection", ws => {
         console.log(' -', ws.username ? ws.username : ws.id);
         delete USERS[ws.id];
         updateRooms(ws);
-
     });
 });
 

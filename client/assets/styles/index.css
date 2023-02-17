@@ -6,6 +6,7 @@
 body {
     margin: 0;
     font-family: sans-serif;
+    overflow: hidden;
 }
 
 #container {
@@ -229,8 +230,16 @@ body {
     cursor: pointer;
 }
 
-/* SELECT A COLOR FORM */
-#select-color-form {
-    font-size: 1rem;
+#leave-btn {
+    position: absolute;
+    top: 0;
+    left: 0;
+    font-size: 1.1rem;
+    padding: 20px;
+    cursor: pointer;
+    border: none;
 }
 
+#canvas {
+    border: 1px black solid;
+}
